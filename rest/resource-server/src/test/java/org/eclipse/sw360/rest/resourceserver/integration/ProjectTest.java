@@ -11,6 +11,7 @@
 package org.eclipse.sw360.rest.resourceserver.integration;
 
 import org.apache.thrift.TException;
+import org.eclipse.sw360.datahandler.resourcelists.PaginationResult;
 import org.eclipse.sw360.datahandler.thrift.projects.Project;
 import org.eclipse.sw360.datahandler.thrift.users.User;
 import org.eclipse.sw360.rest.resourceserver.TestHelper;
@@ -27,6 +28,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -44,14 +46,21 @@ public class ProjectTest extends TestIntegrationBase {
 
     @Before
     public void before() throws TException {
-        Set<Project> projectList = new HashSet<>();
+        Set<Project> projectSet = new HashSet<>();
         Project project = new Project();
         project.setName("Project name");
         project.setDescription("Project description");
-        projectList.add(project);
+        projectSet.add(project);
 
-        given(this.projectServiceMock.getProjectsForUser(any(), any())).willReturn(projectList);
-        given(this.projectServiceMock.getProjectsSummaryForUserWithoutPagination(any())).willReturn(projectList.stream().toList());
+        List<Project> projectList = List.of(project);
+
+        PaginationResult<Project> paginationResult = new PaginationResult<Project>();
+        paginationResult.setTotalCount(1);
+        paginationResult.setResources(projectList);
+
+        given(this.projectServiceMock.getProjectsForUser(any(), any())).willReturn(projectSet);
+        given(this.projectServiceMock.getProjectsSummaryForUserWithoutPagination(any())).willReturn(projectList);
+        given(this.projectServiceMock.getProjectsSummaryForUser(any(), any())).willReturn(paginationResult);
 
         User user = new User();
         user.setId("123456789");
@@ -69,9 +78,9 @@ public class ProjectTest extends TestIntegrationBase {
                         HttpMethod.GET,
                         new HttpEntity<>(null, headers),
                         String.class);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
 
+        assertEquals(HttpStatus.OK, response.getStatusCode());
         TestHelper.checkResponse(response.getBody(), "projects", 1);
     }
-
 }
+
